@@ -8,8 +8,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.commons.codec.digest.Crypt;
 import org.json.JSONArray;
@@ -41,6 +45,12 @@ public class Database {
                                 "username varchar(50) NOT NULL PRIMARY KEY, "+
                                 "user TEXT NOT NULL"+
                             ")";
+
+        // Create tags table
+        String tagsTable =  "CREATE TABLE IF NOT EXISTS tags ("+
+                                "title TEXT NOT NULL, "+
+                                "count INTEGER"+
+                            ")"; 
         
         // Create memes table
         String memesTable =  "CREATE TABLE IF NOT EXISTS memes ("+
@@ -49,16 +59,11 @@ public class Database {
                                 "id INTEGER PRIMARY KEY AUTOINCREMENT"+
                              ")";
                                 
-        // Create tags table
-        String tagsTable = "CREATE TABLE IF NOT EXISTS tags ("+
-                                "tags TEXT NOT NULL"+
-                            ")";
-
         // Add all tables to database
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate(userTable);
-            statement.executeUpdate(memesTable);
             statement.executeUpdate(tagsTable);
+            statement.executeUpdate(memesTable);
         }
 
         // Add default user to the table
@@ -266,58 +271,148 @@ public class Database {
 
 
 
-    public Set<String> getTagSet() throws SQLException {
+    public void addTag(Tag tag) throws SQLException {
 
-        // Get tags
-        JSONArray tagsArray = getTags();
-        Set<String> tagSet = new HashSet<>();
+        // Set the SQL command
+        String command = "INSERT INTO tags VALUES(?, ?)";
 
-        // Put them to the Set
-        for (int i = 0; i < tagsArray.length(); i++) {
-            tagSet.add(tagsArray.getString(i));
+        // Send the tag to the database
+        try (PreparedStatement statement = connection.prepareStatement(command)) {
+            statement.setString(1, tag.getTitle());
+            statement.setInt(2, tag.getCount());
+
+            statement.executeUpdate();
+        }
+    }
+
+
+    public Set<Tag> getTagSet() throws SQLException {
+
+        // Create new tag set
+        HashSet<Tag> tagSet = new HashSet<>();
+
+        // Set SQL command
+        String command = "SELECT tag, count FROM tags";
+
+        // Seek all tags
+        try (PreparedStatement statement = connection.prepareStatement(command)) {
+            try (ResultSet tags = statement.executeQuery()) {
+
+                // Iterate all tags
+                while (tags.next()) {
+
+                    // Create tag
+                    String title = tags.getString("title");
+                    int count = tags.getInt("count");
+                    Tag tag = new Tag(title, count);
+
+                    // Add the tag to the set
+                    tagSet.add(tag);
+                }                
+            }
         }
 
         return tagSet;
     }
 
 
-
-
-    public void addNewTags(JSONArray tags) throws SQLException {
-        JSONArray currentTags = getTags();
-
-        // Add new tags to the table
-        for (int i = 0; i < tags.length(); i++) {
-            currentTags.put(tags.getString(i));
-        }
+    public void increaseTagCount(Tag tag) throws SQLException {
 
         // Set SQL command
-        String command = "UPDATE tags SET tags = ?";
+        String command = "UPDATE tags SET count = count + 1 WHERE title = ?";
 
-        // Update tags
+        // Update the count increasing
         try (PreparedStatement statement = connection.prepareStatement(command)) {
-            statement.setString(1, currentTags.toString());
-            statement.executeUpdate();
+            statement.setString(1, tag.getTitle());
+            statement.executeQuery();            
         }
     }
 
 
-    private JSONArray getTags() throws SQLException {
+    public void decreaseTagCount(Tag tag) throws SQLException {
+
         // Set SQL command
-        String command = "SELECT tags FROM tags";
+        String command = "UPDATE tags SET count = count - 1 WHERE tag = ? AND count > 0";
 
+        // Update the count decreasing
         try (PreparedStatement statement = connection.prepareStatement(command)) {
-            try (ResultSet tags = statement.executeQuery()) {
-
-                // Do tags exist
-                if (!tags.next()) {
-                    throw new NullPointerException("Tags array not found");
-                }
-
-                // Get tags
-                return new JSONArray(tags.getString("tags"));
-            } 
+            statement.setString(1, tag.getTitle());
+            statement.executeQuery();            
         }
+    }
+
+
+
+
+    public void addMeme(Meme meme) throws SQLException {
+
+        // Set SQL command
+        String command = "INSERT INTO memes VALUES(?, ?)";
+
+        // Send the meme to the database
+        try (PreparedStatement statement = connection.prepareStatement(command)) {
+            statement.setString(1, meme.getTitle());
+            statement.setString(2, meme.getTagsJsonString());
+        }
+    }
+
+
+    public SortedMap<Meme, Integer> getMemesTree() throws SQLException {
+
+        // Create new meme map
+        SortedMap<Meme, Integer> memeMap = new TreeMap<>();
+
+        // Set SQL command
+        String command = "SELECT title, tags, id FROM memes";
+
+        // Seek all memes
+        try (PreparedStatement statement = connection.prepareStatement(command)) {
+            try (ResultSet memes = statement.executeQuery()) {
+
+                // Iterate all memes
+                while (memes.next()) {
+
+                    // Create meme
+                    String title = memes.getString("title");
+                    JSONArray tags = new JSONArray(memes.getString("tags"));
+                    Meme meme = new Meme(title, tags);
+
+                    // Add the meme to the Map
+                    int id = memes.getInt("id");
+                    memeMap.put(meme, id);
+                }
+            }
+        }
+
+        return memeMap;
+    }
+
+
+    public Map<Meme, Integer> getMemeById(int id) throws SQLException {
+
+        // Create a meme set
+        Map<Meme, Integer> memeSet = new HashMap<>();
+
+        // Set SQL command
+        String command = "SELECT title, tags FROM memes WHERE id = ?";
+
+        // Seek all memes
+        try (PreparedStatement statement = connection.prepareStatement(command)) {
+            statement.setInt(1, id);
+            try (ResultSet memes = statement.executeQuery()) {
+
+                // Iterate all memes
+                while (memes.next()) {
+
+                    // Create meme
+                    String title = memes.getString("title");
+                    JSONArray tags = new JSONArray(memes.getString("tags"));
+                    memeSet.put(new Meme(title, tags), id);
+                }
+            }
+        }
+
+        return memeSet;
     }
 
 }

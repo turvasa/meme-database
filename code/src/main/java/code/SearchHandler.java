@@ -8,8 +8,15 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.invoke.WrongMethodTypeException;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore.Entry;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
@@ -23,6 +30,8 @@ import com.sun.net.httpserver.HttpHandler;
 public class SearchHandler implements HttpHandler {
 
     private final Database database;
+    private Set<Tag> allTags;
+    private SortedMap<Meme, Integer> memes;
 
 
     /**
@@ -30,8 +39,10 @@ public class SearchHandler implements HttpHandler {
     *
     * @param database Database of the server
     */
-    public SearchHandler(Database database) {
+    public SearchHandler(Database database, Set<Tag> allTags, SortedMap<Meme, Integer> memes) {
         this.database = database;
+        this.allTags = allTags;
+        this.memes = memes;
     }
 
 
@@ -72,38 +83,38 @@ public class SearchHandler implements HttpHandler {
 
             // Get the search details
             JSONObject contentJson = new JSONObject(content);
-            String title = contentJson.getString("title");
-            int id = contentJson.getInt("id");
-            JSONArray tagsArray = contentJson.getJSONArray("tags");
-            Tags tags = new Tags(database, tagsArray);
+            String title = contentJson.optString("title", null);
+            int id = contentJson.optInt("id", -1);
+            JSONArray tagsArray = contentJson.optJSONArray("tags", null);
 
-            // Get corresponding memes
-            Set<String> memePaths = database.getMemePaths(title, id, tags);
-            
-            JSONArray memes = new JSONArray();
-            for (String path: memePaths) {
-                File meme = new File("../../../../memes/"+path);
-
-                if (!meme.exists()) {
-                    memes.put(path + " not found (photo is most likely deleted)");
-                }
-
-                else {
-                    memes.put(path);
-                }
-            }
+            // Corresponding memes array
+            JSONArray memePaths = filterMemes(title, id, tagsArray);
 
             // Send the meme paths
-            byte[] memeBytes = memes.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] memeBytes = memePaths.toString().getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, memeBytes.length);
         }
 
-        catch (SQLException | IOException e) {
+        catch (IOException e) {
             errorResponse(exchange, 406, e.getMessage());
         }
 
         catch (Exception e) {
             errorResponse(exchange, 400, e.getMessage());
+        }
+    }
+
+
+    private String getContent(HttpExchange exchange, Headers headers) throws IOException {
+
+        if (!headerContent(headers).startsWith("application/json")) {
+            throw new WrongMethodTypeException("Invalid method type");
+        }
+
+        try (InputStream inputStream = exchange.getRequestBody()) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+
+            return reader.lines().collect(Collectors.joining("\n"));
         }
     }
 
@@ -128,18 +139,126 @@ public class SearchHandler implements HttpHandler {
     }
 
 
-    private String getContent(HttpExchange exchange, Headers headers) throws IOException {
 
-        if (!headerContent(headers).startsWith("application/json")) {
-            throw new WrongMethodTypeException("Invalid methdo type");
+    private JSONArray filterMemes(String title, int id, JSONArray tags) throws SQLException {
+        
+        boolean isFiltered = false;
+        Map<Meme, Integer> filtererMemes = new HashMap<>();
+        
+        // Filter title
+        if (title != null) {
+            filterTitle(filtererMemes, title);
+            isFiltered = true;
         }
 
-        try (InputStream inputStream = exchange.getRequestBody()) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+        // Filter ID
+        if (id != -1) {
+            filterId(filtererMemes, id, isFiltered);
+            isFiltered = true;
+        }
 
-            return reader.lines().collect(Collectors.joining("\n"));
+        // Filter with tags
+        if (tags != null) {
+            filterTags(filtererMemes, tags, isFiltered);
+            isFiltered = true;
+        }
+
+        // Return the found memes as json array
+        if (isFiltered) {
+            return filteredMemeArray(filtererMemes);
+        } else {
+            return filteredMemeArray(memes);
         }
     }
+
+
+    private void filterTitle(Map<Meme, Integer> currentMemes, String title) {
+
+        Meme meme = new Meme(title, new JSONArray());
+
+        if (memes.containsKey(meme)) {
+            currentMemes.put(meme, memes.get(meme));
+        }
+    }
+
+
+    private void filterId(Map<Meme, Integer> currentMemes, int id, boolean isFiltered) throws SQLException {
+
+        // Previous filters have filtered out everything
+        if (currentMemes.isEmpty()) {
+            return;
+        }
+
+        // This is first filtering
+        if (!isFiltered) {
+            currentMemes = database.getMemeById(id);
+        }
+
+        else {
+            // Memes are already filtered by title, so there is only 1 node in the map
+            if (!currentMemes.containsValue(id)) {
+                currentMemes.clear();
+            }
+        }
+    }
+
+
+    private void filterTags(Map<Meme, Integer> currentMemes, JSONArray tagsJson, boolean isFiltered) {
+
+        // Previous filters have filtered out everything
+        if (currentMemes.isEmpty()) {
+            return;
+        }
+
+        // Convert the tags json to set
+        Set<Tag> tags = new HashSet<>();
+        for (int i = 0; i < tagsJson.length(); i++) {
+            JSONObject tag = tagsJson.getJSONObject(i);
+            String title = tag.optString("title", "Title not provided");
+            int count = tag.optInt("count", 0);
+            tags.add(new Tag(title, count));
+        }
+
+        // This is first filtering
+        if (!isFiltered) {
+            for (Meme meme: memes.keySet()) {
+
+                // Add all corresponding memes
+                if (meme.containsTags(tags)) {
+                    currentMemes.put(meme, 0);
+                }
+            }
+        }
+
+        else {
+            for (Meme meme: currentMemes.keySet()) {
+
+                // Remove all non corresponding memes
+                if (!meme.containsTags(tags)) {
+                    currentMemes.remove(meme);
+                }
+            }
+        }
+    }
+
+
+    private JSONArray filteredMemeArray(Map<Meme, Integer> filterMemes) {
+        
+        JSONArray filteredMemeArray = new JSONArray();
+
+        for (Meme meme: filterMemes.keySet()) {
+            filteredMemeArray.put(getFullPath(meme.getTitle()));
+        }
+
+        return filteredMemeArray;
+    }
+
+
+    private String getFullPath(String title) {
+        return "../../../../memes/"+title;
+    }
+
+
 
 
     /**

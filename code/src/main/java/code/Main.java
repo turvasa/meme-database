@@ -1,8 +1,17 @@
 package code;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -10,14 +19,17 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsParameters;
 import com.sun.net.httpserver.HttpsServer;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws JSONException, IOException {
 
 		// Checks that args have right amount (2) arguments
 		if (args.length != 2) {
@@ -37,6 +49,10 @@ public class Main {
 			// Create database
 			Database database = Database.open("database.db");
 
+			// Load the database to memory
+			Set<Tag> allTags = database.getTagSet();
+			SortedMap<Meme, Integer> memes = database.getMemesTree();
+
 			// Configure authenticator
 			UserAuthenticator authenticator = new UserAuthenticator(database);
 
@@ -44,7 +60,7 @@ public class Main {
             HttpContext mainPage = server.createContext("", new ServerHandler());
 			HttpContext help = server.createContext("/help", new HelpHandler());
 			HttpContext registration = server.createContext("/registration", new UserHandler(authenticator));
-			HttpContext search = server.createContext("/search", new SearchHandler(database));
+			HttpContext search = server.createContext("/search", new SearchHandler(database, allTags, memes));
 
 			// Set authenticators
 			help.setAuthenticator(null);
@@ -63,6 +79,7 @@ public class Main {
 			System.out.println("\nServed did not start: "+e.getMessage());
 		}
 	}
+
 
 
 

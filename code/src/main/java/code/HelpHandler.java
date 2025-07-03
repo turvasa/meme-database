@@ -25,7 +25,8 @@ public class HelpHandler implements HttpHandler {
     public String help() {
         return "Welcome to the Meme Database Instructions\n"+
                "    1. Meme must be .png file\n"+
-               "    2. Meme must be given with tags and title while adding";
+               "    2. Meme must be given with tags and title while adding\n"+
+               "    3. Title white spaces will e replaced by '_'";
     }
 
 
