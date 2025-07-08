@@ -9,16 +9,18 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.commons.codec.digest.Crypt;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import code.user.User;
 
 
 public class Database {
@@ -289,10 +291,10 @@ public class Database {
     }
 
 
-    public Set<Tag> getTagSet() throws SQLException {
+    public SortedSet<Tag> getTagSet() throws SQLException {
 
         // Create new tag set
-        HashSet<Tag> tagSet = new HashSet<>();
+        SortedSet<Tag> tagSet = new TreeSet<>();
 
         // Set SQL command
         String command = "SELECT title, count FROM tags";
@@ -419,6 +421,19 @@ public class Database {
         }
 
         return memeSet;
+    }
+
+
+
+
+    public void editMeme(Meme meme) throws SQLException {
+
+        String command = "UPDATE tags FROM memes WHERE title = ?";
+
+        try (PreparedStatement statement = connection.prepareStatement(command)) {
+            statement.setString(1, meme.getTagsJsonString());
+            statement.executeQuery();
+        }
     }
 
 }

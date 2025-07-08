@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 
@@ -27,6 +28,28 @@ public class Meme implements Comparable<Meme> {
         setID(id);
         setLikes(likes);
 
+        addTagsToSet(tagsJson);
+   }
+
+
+
+
+    public Meme(JSONObject meme) throws JSONException {
+        String memeTitle = meme.getString("title");
+        JSONArray tagsJson = meme.getJSONArray("tags");
+        int memeID = meme.getInt("id");
+
+        setTitle(memeTitle);
+        setTags(tagsJson);
+        setID(memeID);
+        setLikes(0);
+
+        addTagsToSet(tagsJson);
+    }
+
+
+
+    private void addTagsToSet(JSONArray tagsJson) {
         // Add all tags to the set
         for (int i = 0; i < tagsJson.length(); i++) {
             JSONObject tag = tagsJson.getJSONObject(i);
@@ -35,6 +58,7 @@ public class Meme implements Comparable<Meme> {
 
             tags.add(new Tag(tagTitle, tagCount));
         }
+ 
     }
 
 
@@ -81,8 +105,12 @@ public class Meme implements Comparable<Meme> {
     }
 
 
-    public String getTagsJsonString() {
+    public Set<Tag> getTags() {
+        return tags;
+    }
 
+
+    public String getTagsJsonString() {
         JSONArray tagsArray = new JSONArray();
 
         // Iterate the tag set

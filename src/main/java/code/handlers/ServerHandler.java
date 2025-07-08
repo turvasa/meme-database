@@ -1,11 +1,12 @@
-package code;
+package code.handlers;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+
+import code.HttpExchangeMethods;
 
 
 public class ServerHandler implements HttpHandler {
@@ -27,6 +28,8 @@ public class ServerHandler implements HttpHandler {
     */
 	@Override
 	public void handle(HttpExchange exchange) throws IOException {
+        HttpExchangeMethods exchangeMethods = new HttpExchangeMethods(exchange, "[ERROR] - MAINPAGE");
+
         try (exchange) {
             String method = exchange.getRequestMethod().toUpperCase();
             
@@ -36,12 +39,12 @@ public class ServerHandler implements HttpHandler {
                 case "GET" -> getRequest(exchange);
                 
                 // Hande unsupported methods
-                default -> errorResponse(exchange, 407, "Unsupported method");
+                default -> exchangeMethods.errorResponse(407, "Unsupported method");
             }
         }
 
 		catch (Exception e) {
-			errorResponse(exchange, 400, e.getMessage());
+			exchangeMethods.errorResponse(400, e.getMessage());
 		}
 	}
 
@@ -58,25 +61,4 @@ public class ServerHandler implements HttpHandler {
 		exchange.sendResponseHeaders(200, bytes.length);
 	}
 
-
-	/**
-    * Sends error message to the server
-    *
-    * @param  exchange HTTP request hadler
-    * @param  statusCode HTTP status code of the error
-    * @param  message Error message as string
-    */
-    private void errorResponse(HttpExchange exchange, int statusCode, String message) throws IOException {
-        // Transform message to bytes
-        byte[] responseBytes = message.getBytes(StandardCharsets.UTF_8);
-
-        // Send response
-        exchange.sendResponseHeaders(statusCode, responseBytes.length);
-
-        // Output the response
-        try (OutputStream outputStream = exchange.getResponseBody()) {
-            outputStream.write(responseBytes);
-            outputStream.flush();
-        }
-    }
 }

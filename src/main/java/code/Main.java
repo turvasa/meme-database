@@ -4,8 +4,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
-import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -19,6 +19,13 @@ import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsParameters;
 import com.sun.net.httpserver.HttpsServer;
+
+import code.handlers.HelpHandler;
+import code.handlers.MemePostHandler;
+import code.handlers.MemeSearchHandler;
+import code.handlers.ServerHandler;
+import code.handlers.UserHandler;
+import code.user.UserAuthenticator;
 
 public class Main {
     public static void main(String[] args) throws JSONException, IOException {
@@ -38,26 +45,30 @@ public class Main {
 			SSLContext sslContext = serverSSLContext(keystorePath, keystorePassword);
 			configureServer(server, sslContext);
 
+			System.out.println(server.getAddress().toString());
+
 			// Create database
 			Database database = Database.open("database.db");
 
 			// Load the database to memory
-			Set<Tag> allTags = database.getTagSet();
+			SortedSet<Tag> allTags = database.getTagSet();
 			SortedMap<Integer, Meme> memes = database.getMemesTree();
 
 			// Configure authenticator
 			UserAuthenticator authenticator = new UserAuthenticator(database);
 
 			// Create contexts
-            server.createContext("/", new ServerHandler());
+            server.createContext("/mainpage", new ServerHandler());
 			HttpContext help = server.createContext("/help", new HelpHandler());
-			HttpContext registration = server.createContext("/registration", new UserHandler(authenticator));
-			HttpContext search = server.createContext("/search", new SearchHandler(database, allTags, memes));
+			HttpContext registration = server.createContext("/user/registration", new UserHandler(authenticator));
+			HttpContext post = server.createContext("/meme/post", new MemePostHandler(database, allTags, memes));
+			HttpContext search = server.createContext("/meme/search", new MemeSearchHandler(allTags, memes));
 
 			// Set authenticators
 			help.setAuthenticator(null);
 			registration.setAuthenticator(null);
-			search.setAuthenticator(authenticator);
+			post.setAuthenticator(authenticator);
+			search.setAuthenticator(null);
 
 			// Creates a default executor
 			server.setExecutor(Executors.newCachedThreadPool());

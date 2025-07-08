@@ -1,20 +1,14 @@
-package code;
+package code.handlers;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.lang.invoke.WrongMethodTypeException;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.stream.Collectors;
+import java.util.SortedSet;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -23,30 +17,29 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import code.HttpExchangeMethods;
+import code.Meme;
+import code.Tag;
 import code.meme_comparators.MemeIdComparator;
 import code.meme_comparators.MemeLikesComparator;
 import code.meme_comparators.MemeTitleComparator;
 
 
-public class SearchHandler implements HttpHandler {
+public class MemeSearchHandler implements HttpHandler {
 
 
-    private final Database database;
-    private Set<Tag> allTags;
+    private final SortedSet<Tag> allTags;
     private final SortedMap<Integer, Meme> memes;
- 
-    private static final String ERROR_MESSAGE = "[ERROR] - SEARCH";
 
 
 
 
     /**
-    * Handles all request for obseravtions
+    * Handles all request for meme searching
     *
     * @param database Database of the server
     */
-    public SearchHandler(Database database, Set<Tag> allTags, SortedMap<Integer, Meme> memes) {
-        this.database = database;
+    public MemeSearchHandler(SortedSet<Tag> allTags, SortedMap<Integer, Meme> memes) {
         this.allTags = allTags;
         this.memes = memes;
     }
@@ -55,37 +48,36 @@ public class SearchHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+        HttpExchangeMethods exchangeMethods = new HttpExchangeMethods(exchange, "[ERROR] - SERACH");
 
         try (exchange) {
             String method = exchange.getRequestMethod().toUpperCase();
 
             switch (method) {
-                case "GET" -> getRequest(exchange);
+                case "GET" -> getRequest(exchange, exchangeMethods);
 
-                default -> errorResponse(exchange, 405, ERROR_MESSAGE + ": Unsupported search method\n");
+                default -> exchangeMethods.errorResponse(405, ": Unsupported search method\n");
             }
         }
 
         // Search items are invalid
         catch (IllegalArgumentException e) {
-            errorResponse(exchange, 403, ERROR_MESSAGE + e.getMessage());
+            exchangeMethods.errorResponse(403, e.getMessage());
         }
 
         catch (Exception e) {
-            errorResponse(exchange, 500, ERROR_MESSAGE + e.getMessage());
+            exchangeMethods.errorResponse(500, e.getMessage());
         }
     }
 
     
 
 
-    private void getRequest(HttpExchange exchange) {
-
+    private void getRequest(HttpExchange exchange, HttpExchangeMethods exchangeMethods) {
         try {
-
-            // Content type validity chech
+            // Content type validity check
             Headers headers = exchange.getRequestHeaders();
-            String content = getContent(exchange, headers);
+            String content = exchangeMethods.getContent(headers);
 
             // Get the search details
             JSONObject contentJson = new JSONObject(content);
@@ -103,49 +95,13 @@ public class SearchHandler implements HttpHandler {
         }
 
         catch (IOException e) {
-            errorResponse(exchange, 406, ERROR_MESSAGE + e.getMessage());
-        }
-
-        catch (SQLException e) {
-            errorResponse(exchange, 400, ERROR_MESSAGE + e.getMessage());
+            exchangeMethods.errorResponse(406, e.getMessage());
         }
 
     }
 
 
-    private String getContent(HttpExchange exchange, Headers headers) throws IOException {
-
-        if (!headerContent(headers).startsWith("application/json")) {
-            throw new WrongMethodTypeException("Invalid method type");
-        }
-
-        try (InputStream inputStream = exchange.getRequestBody()) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-
-            return reader.lines().collect(Collectors.joining("\n"));
-        }
-    }
-
-
-    /**
-    * Gets the content from the header
-    *
-    * @param  headers HTTPS request and response header
-    * @return Content as a string
-    * @throws WrongMethodTypeException Content type is not "Content-Type"
-    */
-    private String headerContent(Headers headers) {
-        // Set content type
-        if (headers.containsKey("Content-Type")) {
-            return headers.getFirst("Content-Type");
-        }
-
-        // Content type is incorrect
-        else {
-            throw new WrongMethodTypeException("Incorrect content type in request\n");
-        }
-    }
-
+   
 
     private enum SORT_TYPE {
         ID,
@@ -166,7 +122,7 @@ public class SearchHandler implements HttpHandler {
 
 
 
-    private JSONArray filterMemes(HttpExchange exchange, String title, int id, JSONArray tags, SORT_TYPE sortingType) throws SQLException {
+    private JSONArray filterMemes(HttpExchange exchange, String title, int id, JSONArray tags, SORT_TYPE sortingType) {
         
         boolean isFiltered = false;
         List<Meme> filtererMemes = new ArrayList<>();
@@ -314,33 +270,4 @@ public class SearchHandler implements HttpHandler {
         return exchange.getLocalAddress().getHostName()+"/memes/"+title;
     }
 
-
-
-
-    /**
-    * Sends error message to the server
-    *
-    * @param  exchange HTTPS request hadler
-    * @param  statusCode HTTPS status code of the error
-    * @param  message Error message as string
-    */
-    private void errorResponse(HttpExchange exchange, int statusCode, String message) {
-        // Transform message to bytes
-        byte[] responseBytes = ("[Error] OBSERVATION - "+message).getBytes(StandardCharsets.UTF_8);
-    
-        try (OutputStream outputStream = exchange.getResponseBody()) {
-
-            // Send response
-            exchange.sendResponseHeaders(statusCode, responseBytes.length);
-
-            // Output the response
-            outputStream.write(responseBytes);
-            outputStream.flush();
-
-        } catch (IOException e) {
-            System.out.println("Error writing response: "+e.getMessage()+"\n");
-        }
-    }
-
-    
 }

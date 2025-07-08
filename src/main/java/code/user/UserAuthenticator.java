@@ -1,4 +1,4 @@
-package code;
+package code.user;
 
 import java.sql.SQLException;
 
@@ -6,6 +6,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.sun.net.httpserver.BasicAuthenticator;
+
+import code.Database;
 
 
 public final class UserAuthenticator extends BasicAuthenticator {
