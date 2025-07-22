@@ -1,0 +1,14 @@
+Registration: 
+curl -k -d "@user.json" https://localhost:8001/user/registration -H "Content-Type: application/json"
+
+Add meme:
+curl -k -d "@meme.json" https://localhost:8001/meme -H "Content-Type: application/json" -u u:p
+
+Search memes:
+curl -k https://localhost:8001/meme/search -H "Content-Type: application/json" -u u:p
+
+Update meme:
+curl -k -d "@updated_meme.json" -X PUT https://localhost:8001/meme -H "Content-Type: application/json" -u u:p
+
+Search memes:
+curl -k "https://localhost:8001/meme/search?id=1&sorting_type=title&title=shrek" -H "Content-Type: application/json" -u u:p
