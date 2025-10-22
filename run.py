@@ -3,8 +3,8 @@ import subprocess
 
 
 launch_json_path = ".vscode/launch.json"
-frontend_path = r"\\src\\main\\java\\code\\frontend"
-application_path = r"\\src\\main\\java\\code\\app.js"
+frontend_path = "\\src\\main\\java\\code\\frontend"
+application_path = "\\src\\main\\java\\code\\app.js"
 
 
 
@@ -19,17 +19,19 @@ def launch_backend():
     args = arg_1 + " " + arg_2
 
     backend_command = f"mvn exec:java -Dexec.mainClass='{main_class}' -Dexec.args='{args}'"
-    subprocess.run(backend_command)
+    subprocess.run(backend_command, shell=True, text=True, capture_output=True)
 
 
 
 def launch_frontend():
-    subprocess.run(f"cd {frontend_path}")
+    subprocess.run(f"cd '{frontend_path}'", shell=True, text=True, capture_output=True)
     frontend_command = "python -m http.server 5500"
     application_comand = f"npx electron {application_path}"
 
-    subprocess.run(frontend_command)
-    subprocess.run(application_comand)
+    subprocess.run(frontend_command, shell=True, text=True, capture_output=True)
+    subprocess.run(application_comand, shell=True, text=True, capture_output=True)
+
+    print("Shrek")
 
 
 
