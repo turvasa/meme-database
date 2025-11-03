@@ -2,7 +2,7 @@ package code.backend.tag_comparators;
 
 import java.util.Comparator;
 
-import code.backend.handlers.Tag;
+import code.backend.Tag;
 
 
 

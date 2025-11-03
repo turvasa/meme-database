@@ -26,7 +26,6 @@ import code.backend.handlers.HelpHandler;
 import code.backend.handlers.MemeHandler;
 import code.backend.handlers.MemeSearchHandler;
 import code.backend.handlers.ServerHandler;
-import code.backend.handlers.Tag;
 import code.backend.handlers.UserHandler;
 import code.backend.user.UserAuthenticator;
 

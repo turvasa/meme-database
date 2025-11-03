@@ -24,7 +24,7 @@ def launch_backend():
     arg_1, arg_2 = configuration.get("args", " ")
     args = [arg_1, arg_2]
 
-    backend_command = ["mvn", "maven:java", f"-Dexec.mainClass='{main_class}'", f"-Dexec.args='{args}'"]
+    backend_command = ["mvn", "exec:java", f"-Dexec.mainClass={main_class}", f"-Dexec.args={args}"]
     processes[0] = subprocess.Popen(backend_command, preexec_fn=os.setsid)
     sleep(100/1000) # 100ms
     print("Backend running")
@@ -33,7 +33,10 @@ def launch_backend():
 
 def launch_frontend():
     frontend_command = ["python", "-m", "http.server", "5500"]
-    processes[1] = subprocess.Popen(frontend_command, cwd=frontend_path, preexec_fn=os.setsid)
+    try: 
+        processes[1] = subprocess.Popen(frontend_command, cwd=frontend_path, preexec_fn=os.setsid)
+    except OSError: 
+        print("Port already running")
     sleep(100/1000) # 100ms
     print("Frontend running")
 
@@ -64,8 +67,9 @@ def kill_processes():
         if process and process.poll() is not None:
             try:
                 os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                print("Process shutdown")
             except ProcessLookupError:
-                print("gay")
+                print("Process not found")
                 continue
     print("Done.")
 

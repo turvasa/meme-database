@@ -1,6 +1,5 @@
 package code.backend;
 
-import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -8,13 +7,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import code.backend.handlers.Tag;
-
 
 public class Meme implements Comparable<Meme> {
 
     private String title;
-    private Set<Tag> tags;
+    private JSONArray tags;
+    private Integer tagCount;
     private Integer id;
     private Integer likes;
 
@@ -27,10 +25,9 @@ public class Meme implements Comparable<Meme> {
 
         setTitle(title);
         setTags(tagsJson);
+        this.tagCount = tagsJson.length();
         setID(id);
         setLikes(likes);
-
-        addTagsToSet(tagsJson);
    }
 
 
@@ -38,33 +35,18 @@ public class Meme implements Comparable<Meme> {
 
     public Meme(JSONObject meme) throws JSONException {
         String memeTitle = meme.getString("title");
-        JSONArray tagsJson = meme.optJSONArray("tags", null);
+        JSONArray tags = meme.optJSONArray("tags", null);
 
         setTitle(memeTitle);
-        this.tags = new HashSet<>();
-        this.id = 0;
+        setTags(tags);
+        this.tagCount = tags.length();
+        setID(0);
         setLikes(0);
-
-        addTagsToSet(tagsJson);
     }
 
 
 
-    private void addTagsToSet(JSONArray tagsJson) {
-        // Iterate all tags
-        for (int i = 0; i < tagsJson.length(); i++) {
-
-            // Add the tag
-            JSONObject tagJson = tagsJson.getJSONObject(i);
-            String tagTitle = tagJson.getString("title");
-            int tagCount = tagJson.getInt("count");
-            tags.add(new Tag(tagTitle, tagCount));
-        }
- 
-    }
-
-
-
+    
 
     private void setTitle(String title) {
         if (title == null || title.isEmpty()) {
@@ -89,7 +71,7 @@ public class Meme implements Comparable<Meme> {
             throw new IllegalArgumentException(ERROR_MESSAGE + "Meme must have at least 1 tag");
         }
 
-        this.tags = new HashSet<>();
+        this.tags = tags;
     }
 
 
@@ -109,11 +91,34 @@ public class Meme implements Comparable<Meme> {
     }
 
 
-    public Set<Tag> getTags() {
+    public JSONArray getTagsJSON() {
         return tags;
     }
 
 
+    public Set<Tag> getTagsSet() {
+        Set<Tag> tagSet = new HashSet<>();
+
+        // Iterate all tags
+        for (int i = 0; i < tags.length(); i++) {
+
+            // Add the tag
+            JSONObject tagJson = tags.getJSONObject(i);
+            String tagTitle = tagJson.getString("title");
+            int tagCount = tagJson.getInt("count");
+            tagSet.add(new Tag(tagTitle, tagCount));
+        }
+ 
+        return tagSet;
+    }
+
+
+    public Integer getTagCount() {
+        return tagCount;
+    }
+
+
+    /*
     public String getTagsJsonString() {
         JSONArray tagsArray = new JSONArray();
 
@@ -131,7 +136,7 @@ public class Meme implements Comparable<Meme> {
         }
         return tagsArray.toString();
     }
-
+    */
 
     public Integer getID() {
         return id;
@@ -144,14 +149,7 @@ public class Meme implements Comparable<Meme> {
 
 
 
-
-    public boolean containsTags(Set<Tag> givenTags) {
-        return tags.containsAll(givenTags);
-    }
-
-
-
-
+/*
     public void checkForNewTags(Set<Tag> allTags, Database database) throws SQLException {
 
         // Skip iteration if all tags are already added
@@ -167,12 +165,25 @@ public class Meme implements Comparable<Meme> {
             }
         }
     }
+*/
 
+
+    public JSONObject toJSONString() { 
+        JSONObject memeJson = new JSONObject();
+
+        memeJson.put("title", title);
+        memeJson.put("tags", tags);
+        memeJson.put("tagCount", tagCount);
+        memeJson.put("id", id);
+        memeJson.put("likes", likes);
+
+        return memeJson;
+    }
 
 
     @Override
     public String toString() {
-        return ("Title: "+title+" - ID: "+id+" - Likes: "+likes+" - Tags: "+getTagsJsonString());
+        return ("Title: "+title+" - ID: "+id+" - Likes: "+likes+" - Tags: "+getTagsJSON());
     }
 
 

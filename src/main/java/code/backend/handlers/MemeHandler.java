@@ -24,6 +24,7 @@ import com.sun.net.httpserver.HttpHandler;
 import code.backend.Database;
 import code.backend.HttpExchangeMethods;
 import code.backend.Meme;
+import code.backend.Tag;
 
 
 public class MemeHandler implements HttpHandler {
