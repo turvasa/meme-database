@@ -58,8 +58,9 @@ public final class UserAuthenticator extends BasicAuthenticator {
         // Create new user
         User user = new User(userObj);
         String username = user.getUsername();
+        String password = user.getPassword();
 
         // Add user to user table of the database
-        database.addUser(user.toJSONString(), username);
+        database.addUser(username, password);
     }
 }

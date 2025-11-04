@@ -14,7 +14,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -75,16 +74,6 @@ public class MemeSearchHandler implements HttpHandler {
 
     private void getRequest(HttpExchange exchange, HttpExchangeMethods exchangeMethods) {
         try {
-            // Content type validity check
-            Headers headers = exchange.getRequestHeaders();
-            String content = exchangeMethods.getContent(headers);
-
-            // Get the search details from the JSON
-            JSONArray tagsArray = null;
-            if (content.startsWith("{")) {
-                JSONObject contentJson = new JSONObject(content);
-                tagsArray = contentJson.optJSONArray("tags", null);
-            }
 
             // Get search details from the query
             String[] variables = getVariables(exchange);

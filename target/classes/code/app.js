@@ -9,6 +9,7 @@ function createWindow() {
     });
 
     window.loadURL("http://localhost:5500")
+    console.log("Electron loading frontend from http://localhost:5500");
 }
 
 

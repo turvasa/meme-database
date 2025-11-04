@@ -27,7 +27,7 @@
                     const text = await response.text();
                     document.getElementById("helpText").innerText = text;
                 } catch (error) {
-                    document.getElementById("helpText").innerText = "Error while fetching instructions";
+                    document.getElementById("helpText").innerText = "Error while fetching instructions.";
                     console.error(error);
                 }
             }

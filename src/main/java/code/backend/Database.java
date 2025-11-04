@@ -16,8 +16,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import code.backend.user.User;
-
 
 public class Database {
 
@@ -43,7 +41,7 @@ public class Database {
         // Create users table
         String userTable =  "CREATE TABLE IF NOT EXISTS User (" +
                                 "name varchar(50) NOT NULL, " +
-                                "user TEXT NOT NULL, " +
+                                "password TEXT NOT NULL, " +
                                 "id INTEGER PRIMARY KEY AUTOINCREMENT" +
                             ")";
 
@@ -57,17 +55,17 @@ public class Database {
         String memesTable =  "CREATE TABLE IF NOT EXISTS Meme (" +
                                 "title VARCHAR(50) NOT NULL UNIQUE, " +
                                 "likes INTEGER NOT NULL, " +
-                                "username TEXT NOT NULL, " +
+                                "username VARCHAR(50) NOT NULL, " +
                                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                                "FOREING KEY (username) REFERENCES User(name)" +
+                                "FOREIGN KEY (username) REFERENCES User(name)" +
                              ")";
 
         // Create hasTag table
         String hasTag = "CREATE TABLE IF NOT EXISTS HasTag (" +
                             "tagId INTEGER NOT NULL, " +
                             "memeId INTEGER NOT NULL, " +
-                            "FOREING KEY (tagId) REFERENCES Tag(id) ON DELETE CASCADE" +
-                            "FOREING KEY (  memeID) REDERENCES Meme(id) ON DELETE CASCADE" +
+                            "FOREIGN KEY (tagId) REFERENCES Tag(id) ON DELETE CASCADE, " +
+                            "FOREIGN KEY (memeId) REFERENCES Meme(id) ON DELETE CASCADE, " +
                             "UNIQUE (tagId, memeId)" +
                         ")";
                                 
@@ -92,19 +90,8 @@ public class Database {
      * @param  username Hard coded username
      */
     private void createDefaultUser(String username) throws JSONException, SQLException {
-        // Check is the default user already added
         if (!isRegistered(username)) {
-
-            // Create new user
-            JSONObject defaultUser = new JSONObject();
-            defaultUser.put("name", "u");
-            defaultUser.put("password", "p");
-            defaultUser.put("email", "el.psy@kongroo.com");
-            defaultUser.put("nickname", "Tatteus");
-            User user = new User(defaultUser);
-
-            // Add it to the users table
-            addUser(user.toJSONString(), username);
+            addUser(username, "p");
         }
     }
 
@@ -153,7 +140,7 @@ public class Database {
 
 
     /**
-    * Check is the user registered to the database
+    * Check is the user registered to the database.
     *
     * @param  username  User's username
     * @return Boolean value wheter the user is registered or not
@@ -177,28 +164,26 @@ public class Database {
 
 
     /**
-    * Adds user to the database
+    * Adds user to the database.
     *
-    * @param  user User's credentials as JSON object string
-    * @param  username  User's username
+    * @param  username User's username
+    * @param  password User's password
     * @throws IllegalArgumentException If user is already added to the database
     */
-    public void addUser(String user, String username) throws SQLException, IllegalArgumentException {
+    public void addUser(String username, String password) throws SQLException, IllegalArgumentException {
 
         // Check is the user registered already
         if (isRegistered(username)) {
             throw new IllegalArgumentException(ERROR_MESSAGE + "User already registered\n");
         }
 
-        String encryptedUser = encryptedUser(user);
-
         // Set the SQL command
-        String command = "INSERT INTO User(name, user) VALUES(?, ?)";
+        String command = "INSERT INTO User(name, password) VALUES(?, ?)";
 
         // Send user's credentials to database
         try (PreparedStatement statement = connection.prepareStatement(command)) {
             statement.setString(1, username);
-            statement.setString(2, encryptedUser);
+            statement.setString(2, encryptPassword(password));
 
             statement.executeUpdate();
         }
@@ -208,14 +193,12 @@ public class Database {
 
 
     /**
-     * Encrypt the user with random salt
+     * Encrypt the password with random salt.
      * 
-     * @param  user User's credentials as JSON object string
+     * @param  password Password to be encrypt
      * @return Encrypted user JSON object string
      */
-    private String encryptedUser(String user) {
-        JSONObject userObj = new JSONObject(user);
-        String password = userObj.getString("password");
+    private String encryptPassword(String password) {
 
         // Create salt
         byte[] bytes = new byte[13];
@@ -225,23 +208,13 @@ public class Database {
         String salt = ("$6$" + saltBytes).replace("+", "a");
 
         // Ecrypt the password
-        String encryptedPassword = Crypt.crypt(password, salt);
-
-        // Create new encrypted user JSON string with
-        JSONObject encryptedUser = new JSONObject();
-        encryptedUser.put("name", userObj.getString("name"));
-        encryptedUser.put("password", encryptedPassword);
-        encryptedUser.put("email", userObj.getString("email"));
-        encryptedUser.put("nickname", userObj.getString("nickname"));
-
-        // Return encrypted user
-        return encryptedUser.toString();
+        return Crypt.crypt(password, salt);
     }
 
 
 
     /**
-     * Checks is the given username-password combination valid
+     * Checks is the given username-password combination valid.
      * 
      * @param  username User's username
      * @param  password Checkable password
@@ -249,26 +222,25 @@ public class Database {
      */
     public boolean isValidUser(String username, String password) throws SQLException {
 
-        // Get user's valid password and it's salt
-        JSONObject user = getUser(username);
-        String validPassword = user.getString("password");
+        // Get user's valid password
+        String validPassword = getPassword(username);
 
-        // Check the validity of the password
+        // Check the validity of the given password
         return validPassword.equals(Crypt.crypt(password, validPassword));
     }
     
     
     /**
-    * Gets user's credentials
+    * Gets user's crypted password.
     *
-    * @param  username  User's username
-    * @return User as JSON object
+    * @param  username User's username
+    * @return User's crypted password
     * @throws IllegalArgumentException If user is not found
     */
-    private JSONObject getUser(String username) throws SQLException, IllegalArgumentException {
+    private String getPassword(String username) throws SQLException, IllegalArgumentException {
 
         // Set the SQL command
-        String command = "SELECT user FROM User WHERE name = ?";
+        String command = "SELECT password FROM User WHERE name = ?";
 
         // Get the given user from users table
         try (PreparedStatement statement = connection.prepareStatement(command)) {
@@ -277,9 +249,7 @@ public class Database {
                 
                 // Does data of the user exist
                 if (user.next()) {
-                    String userStr = user.getString("user");
-
-                    return new JSONObject(userStr);
+                    return user.getString("password");
                 }
 
                 // User is not found from users table

@@ -17,12 +17,9 @@ app.use("/api", createProxyMiddleware({
     target: "https://localhost:8001",
     changeOrigin: true,
     secure: false,
-    pathRewrite: {
-        "^/api": "/api"
-    },
     onProxyReq: (proxyReq, req, res) => {
         // proxyReq.path is the path that will be sent to the backend
-        console.log("Proxy will forward to:", proxyReq.getHeader('host'), proxyReq.path);
+        console.log("Forwarding:", req.originalUrl, "→", proxyReq.path);
     },
     onError: (err, req, res) => {
         console.error("Proxy error:", err);
@@ -34,5 +31,5 @@ app.use("/api", createProxyMiddleware({
 
 const PORT = 5500;
 app.listen(PORT, () => {
-    console.log("Frontend with proxy running.")
+    console.log('Frontend with proxy running.')
 })

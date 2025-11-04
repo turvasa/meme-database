@@ -4,7 +4,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
-import java.util.TreeSet;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -26,6 +25,7 @@ import code.backend.handlers.HelpHandler;
 import code.backend.handlers.MemeHandler;
 import code.backend.handlers.MemeSearchHandler;
 import code.backend.handlers.ServerHandler;
+import code.backend.handlers.TagHandler;
 import code.backend.handlers.UserHandler;
 import code.backend.user.UserAuthenticator;
 
@@ -59,12 +59,14 @@ public class Main {
 			HttpContext registration = createCORSContext(server, "/api/user/registration", new UserHandler(authenticator));
 			HttpContext post = createCORSContext(server, "/api/meme", new MemeHandler(database));
 			HttpContext search = createCORSContext(server, "/api/meme/search", new MemeSearchHandler(database));
+			HttpContext tag = createCORSContext(server, "/api/tag", new TagHandler(database));
 
 			// Set authenticators
 			help.setAuthenticator(null);
 			registration.setAuthenticator(null);
 			post.setAuthenticator(authenticator);
 			search.setAuthenticator(null);
+			tag.setAuthenticator(null);
 
 			// Creates a default executor
 			server.setExecutor(Executors.newCachedThreadPool());
