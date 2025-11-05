@@ -1,18 +1,22 @@
 const express = require("express");
 const {createProxyMiddleware} = require("http-proxy-middleware");
 const path = require("path");
-
-
-
 const app = express();
 
+
+
+// Point the HTML files location
 app.use(express.static(path.join(__dirname, "frontend")))
 
+
+// Log requests
 app.use("/api", (req, res, next) => {
-    console.log("API request: ", req.originalUrl);
+    console.log("Incoming request: ", req.method, req.originalUrl);
     next();
 })
 
+
+// Proxy to the backend
 app.use("/api", createProxyMiddleware({
     target: "https://localhost:8001",
     changeOrigin: true,
@@ -28,8 +32,20 @@ app.use("/api", createProxyMiddleware({
 }));
 
 
+// Log requests
+app.use((req, res) => {
+    console.log("Unhandled request: ", req.method, req.url);
+    res.status(404).send("Not found in proxy");
+})
+
+
+
 
 const PORT = 5500;
-app.listen(PORT, () => {
-    console.log('Frontend with proxy running.')
-})
+app.listen(PORT) 
+    .on("listening", () => {
+        console.log("Proxy running")
+    })
+    .on("error", (err) => {
+        console.error("Failed to start proxy")
+    })
