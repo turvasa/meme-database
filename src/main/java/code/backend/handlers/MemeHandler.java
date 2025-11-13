@@ -87,12 +87,8 @@ public class MemeHandler implements HttpHandler {
             // Get the meme from the content
             Meme meme = parseMultipartStream(multipartStream);
 
-            System.out.println("Meme found and saved");
-
             // Add meme if its new one
             database.addMeme(meme, username);
-
-            System.out.println("Meme added to the database");
 
             // Send success message
             exchange.sendResponseHeaders(200, -1);

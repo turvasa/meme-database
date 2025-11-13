@@ -18,9 +18,15 @@
 
         <!-- Inputs -->
         <form action="addMeme">
-            Title: <input id="title" type="text" required><br>
-            Tags: <input id="tags" type="text" required><span> - Use white space as separator</span><br>
-            File: <input id="memeFile" type="file" name="meme" required><br><br>
+            Title: <input id="title" type="text" required>
+            <span id="titleException"></span><br>
+
+            Tags: <input id="tags" type="text" required><span> - Use white space as separator</span>
+            <span id="tagsException"></span><br>
+
+            File: <input id="memeFile" type="file" name="meme" required>
+            <span id="fileExcpetion"></span><br><br>
+
             <button type="button" onclick="addMeme()">Add Meme</button>
             <span id="buttonText"></span>
         </form>

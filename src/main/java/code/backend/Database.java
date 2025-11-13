@@ -40,7 +40,7 @@ public class Database {
 
         // Create users table
         String userTable =  "CREATE TABLE IF NOT EXISTS User (" +
-                                "name varchar(50) NOT NULL UNIQUE, " +
+                                "name varchar(30) NOT NULL UNIQUE, " +
                                 "password TEXT NOT NULL, " +
                                 "id INTEGER PRIMARY KEY AUTOINCREMENT" +
                             ")";
@@ -53,9 +53,9 @@ public class Database {
         
         // Create memes table
         String memesTable =  "CREATE TABLE IF NOT EXISTS Meme (" +
-                                "title VARCHAR(50) NOT NULL UNIQUE, " +
+                                "title VARCHAR(30) NOT NULL UNIQUE, " +
                                 "likes INTEGER NOT NULL, " +
-                                "username VARCHAR(50) NOT NULL, " +
+                                "username VARCHAR(30) NOT NULL, " +
                                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                                 "FOREIGN KEY (username) REFERENCES User(name)" +
                              ")";
@@ -394,19 +394,13 @@ public class Database {
             throw e;
         }
 
-        System.out.println("Meme added");
-
         // Iterate all tags
         for (Tag tag: meme.getTagsSet()) {
             // Add tag to the database, if it's new
             addNewTag(tag);
 
-            System.out.println("tags added");
-
             // Link the meme and the tag
             addTagOfTheMeme(meme, tag);
-
-            System.out.println("links added");
         }
     }
 
@@ -616,9 +610,9 @@ public class Database {
         // Set SQL exception
         String command = 
             "INSERT INTO HasTag(tagId, memeID) " + 
-            "VALUES(Tag.id, Meme.id) "+
-            "JOIN Tag " +
-            "JOIN Meme " +
+            "SELECT Tag.id, Meme.id "+
+            "FROM Tag " +
+            "CROSS JOIN Meme " +
             "WHERE Tag.title = ? AND Meme.title = ? AND MEME.username = ?"
         ;
 
@@ -716,8 +710,9 @@ public class Database {
         // Set SQL command
         String command = 
             "INSERT INTO HasTag(tagId, memeId) " +
-            "VALUES(Tag.id, Meme.id) " +
-            "FROM Tag, Meme " +
+            "SELECT Tag.id, Meme.id " +
+            "FROM Tag " + 
+            "CROSS JOIN Meme " +
             "WHERE " +
                 "Tag.title = ? AND " +
                 "Meme.title = ?"
