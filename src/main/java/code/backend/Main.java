@@ -25,6 +25,7 @@ import com.sun.net.httpserver.HttpsServer;
 import code.backend.CORS.CORSWrapper;
 import code.backend.handlers.HelpHandler;
 import code.backend.handlers.LoginHandler;
+import code.backend.handlers.MemeDirectoryHandler;
 import code.backend.handlers.MemeHandler;
 import code.backend.handlers.MemeSearchHandler;
 import code.backend.handlers.ServerHandler;
@@ -63,6 +64,7 @@ public class Main {
 			HttpContext registration = createCORSContext(server, "/api/user/registration", new RegistrationHandler(authenticator));
 			HttpContext login = createCORSContext(server, "/api/user/login", new LoginHandler(database, sessions));
 			HttpContext post = createCORSContext(server, "/api/meme", new MemeHandler(database, sessions));
+			HttpContext memeDir = createCORSContext(server, "/api/meme/dir", new MemeDirectoryHandler());
 			HttpContext search = createCORSContext(server, "/api/meme/search", new MemeSearchHandler(database));
 			HttpContext tag = createCORSContext(server, "/api/tag", new TagHandler(database));
 
@@ -71,6 +73,7 @@ public class Main {
 			registration.setAuthenticator(null);
 			login.setAuthenticator(null);
 			post.setAuthenticator(null);
+			memeDir.setAuthenticator(null);
 			search.setAuthenticator(null);
 			tag.setAuthenticator(null);
 

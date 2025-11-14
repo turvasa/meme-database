@@ -8,62 +8,41 @@ const sortLabels = {
     reverse_title: "Alphabetical (inverse)",
     likes: "Most Liked",
     reverse_likes: "Least Liked"
-}
+};
 
 
 async function searchMemes() {
     try {
-        let querry = document.getElementById("querry");
 
-        let response = await fetch("/api/search?search_querry=" + querry + "&sorting_type=" + sortingType, {
+        // Get variables
+        let query = document.getElementById("query").value;
+
+        // Create content header
+        let content = {
             method: "GET",
-            headers: {"Content-Type": "application/json"},
-        });
-        let memes = JSON.parse(response);
+        };
+        
+        document.getElementById("result").textContent = "Finding...";
 
+        // Send the GET request
+        const response = await fetch(
+            "/api/meme/search?search_query=" + query + "&sorting_type=" + sortingType, 
+            content
+        );
+
+        // Display memes
+        let memes = await response.json();
         for (let meme of memes) {
             display_meme(meme);
         }
 
-    } catch (error) {
-        document.getElementById("searchResults").textContent = "Something went wrong";
-        console.error(error);
-    }
-}
-
-
-async function getMemes() {
-    try {
-        let response = await fetch("/api/search?search_querry=&sorting_type=" + sortingType, {
-            method: "GET",
-            headers: {"Content-Type": "application/json"},
-        });
-        let memes = JSON.parse(response);
-
-        for (let meme of memes) {
-            display_meme(meme);
-        }
+        document.getElementById("result").textContent = "Success";
+        console.log("Success");
 
     } catch (error) {
-        document.getElementById("searchResults").textContent = "Something went wrong";
+        document.getElementById("result").textContent = "Something went wrong";
         console.error(error);
     }
-}
-
-
-function tagsJson(tags) {
-    let tagsJson = "[";
-    let index = 1;
-    
-    for (let tag of tags) {
-        tagsJson += "{title: " + tag + ", count = 0}"
-
-        if (index++ != tags.length) {
-            tagsJson += ", "
-        }
-    }
-
-    return JSON.parse(tagsJson + "]");
 }
 
 

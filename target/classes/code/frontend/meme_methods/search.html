@@ -14,12 +14,18 @@
             Meme Searcher
         </h1>
 
-        <a href="../index.html">Home Page</a>
+        <!-- Buttons -->
+        <a href="../index.html">Home</a>
 
-        <!-- Inputs -->
+        <!-- Find all memes when page is opened -->
+        <script>
+            searchMemes()
+        </script>
+
+        <!-- Search form -->
         <div>
-            <input id="querry" placeholder="Search Memes">
-            <span id="querryException"></span>
+            <input id="query" placeholder="Search Memes">
+            <span id="queryException"></span>
             
             <!-- Dropdown sorting type menu -->
             <div class="dropdown">
@@ -34,13 +40,9 @@
                 </div>
             </div><br>
 
-            <button onclick="searchMemes()"><button>Search</button>
+            <button type="button" onclick="searchMemes()">Search</button>
             <span id="result"></span>
         </div>
-
-        <script>
-            getMemes()
-        </script>
     </body>
 
 </html>

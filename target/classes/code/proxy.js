@@ -3,8 +3,9 @@ const {createProxyMiddleware} = require("http-proxy-middleware");
 const path = require("path");
 const app = express();
 
+
 // Create proxy for the API calls
-const apiProxy =  createProxyMiddleware({
+const apiProxy = createProxyMiddleware({
     target: "https://localhost:8001",
     pathFilter: "/api",
     changeOrigin: true,
@@ -18,7 +19,6 @@ const apiProxy =  createProxyMiddleware({
         if (!res.headersSent) res.status(502).send("Bad gateway");
     }
 });
-
 
 
 

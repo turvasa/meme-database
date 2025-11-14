@@ -737,9 +737,11 @@ public class Database {
     private JSONArray getMemeTags(int memeId) throws SQLException {
         JSONArray tags = new JSONArray();
 
+        System.out.println("shrek");
+
         // Set SQL command
         String command = 
-            "SELECT UNIQUE title " +
+            "SELECT DISTINCT Tag.title " +
             "FROM Tag " +
             "JOIN HasTag ON Tag.id = HasTag.tagId " +
             "JOIN Meme " + 

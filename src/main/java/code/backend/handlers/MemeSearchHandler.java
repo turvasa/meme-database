@@ -1,6 +1,8 @@
 package code.backend.handlers;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -76,22 +78,31 @@ public class MemeSearchHandler implements HttpHandler {
         try {
 
             // Get search details from the query
-            String[] variables = getVariables(exchange);
-            String sortingQuerry = variables[0].toLowerCase();
-            SORT_TYPE sortingType = getMemeSortType(variables[1]);
+            String[] query = getQuery(exchange);
+            String sortingQuerry = query[0];
+            SORT_TYPE sortingType = getMemeSortType(query[1]);
 
             // Corresponding memes array
-            JSONArray memePaths = filterMemes(exchange, sortingQuerry, sortingType);
+            JSONArray memes = filterMemes(exchange, sortingQuerry, sortingType);
 
             // No memes found
-            if (memePaths.isEmpty()) {
-                exchangeMethods.errorResponse(200, ": No memes found");
-                return;
+            if (memes.isEmpty()) {
+                throw new NullPointerException("No memes found");
             }
 
             // Send the meme paths
-            byte[] memeBytes = memePaths.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] memeBytes = memes.toString().getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, memeBytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(memeBytes);
+            }
+
+
+            System.out.println("Success");
+        }
+
+        catch (NullPointerException e) {
+            exchangeMethods.errorResponse(404, e.getMessage());
         }
 
         catch (IOException | SQLException e) {
@@ -114,7 +125,7 @@ public class MemeSearchHandler implements HttpHandler {
      * @return [querry, sortingTypeString]
      * @throws NullPointerException If there are no variables given
      */
-    private String[] getVariables(HttpExchange exchange) {
+    private String[] getQuery(HttpExchange exchange) {
 
         String[] variableValues = {null, null};
 
@@ -145,7 +156,7 @@ public class MemeSearchHandler implements HttpHandler {
             switch (keyValue[0]) {
 
                 // Search querry
-                case "search_querry" -> variableValues[0] = setVariable(keyValue);
+                case "search_query" -> variableValues[0] = setVariable(keyValue);
 
                 // Sorting type
                 case "sorting_type" -> variableValues[1] = setVariable(keyValue);
@@ -161,7 +172,7 @@ public class MemeSearchHandler implements HttpHandler {
         if (keyValue[1].isEmpty()) {
             return null;
         }
-        return keyValue[1];
+        return keyValue[1].toLowerCase();
     }
 
 
@@ -194,13 +205,11 @@ public class MemeSearchHandler implements HttpHandler {
 
 
     private JSONArray filterMemes(HttpExchange exchange, String sortingQuerry, SORT_TYPE sortingType) throws SQLException {
-        boolean isFiltered = false;
         List<Meme> filteredMemes = new ArrayList<>();
 
         // Querry is valid ID
         if (isValidID(sortingQuerry)) {
             findByID(filteredMemes, Integer.parseInt(sortingQuerry));
-            isFiltered = true;
         }
 
         // Query is string
@@ -209,12 +218,10 @@ public class MemeSearchHandler implements HttpHandler {
             // Find memes
             findByTitle(filteredMemes, sortingQuerry);
             findByTags(filteredMemes, sortingQuerry);
-    
-            isFiltered = true;
         }
         
         // Return the found memes as json array
-        if (!isFiltered) {
+        if (sortingQuerry == null) {
             filteredMemes = database.getMemesList();
         }
 
@@ -312,7 +319,23 @@ public class MemeSearchHandler implements HttpHandler {
 
 
     private String getFullPath(HttpExchange exchange, String title) {
-        return exchange.getLocalAddress().getHostName()+"/memes/"+title;
+        String memeDir = System.getProperty("user.dir") + "/memes/";
+        String memePath = memeDir + title;
+
+        // Is .png file found
+        File png = new File(memePath + ".png");
+        if (png.exists()) {
+            return "/api/meme/dir/" + title + ".png";
+        }
+
+        // Is .gif file found
+        File gif = new File(memePath + ".gif");
+        if (gif.exists()) {
+            return "/api/meme/dir/" + title + ".gif";
+        }
+
+        // No file found
+        throw new NullPointerException("Meme file not found");
     }
 
 
